@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Larissa · Dashboard Reabilita</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#0f172a;color:#e2e8f0;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+    /* ── HEADER ────────────────────────────────── */
+    header{background:#1e293b;border-bottom:1px solid #334155;padding:10px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+    header h1{font-size:18px;font-weight:700;color:#38bdf8}
+    header span{font-size:13px;color:#94a3b8}
+    .dot{width:8px;height:8px;background:#22c55e;border-radius:50%;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+    /* ── TABS ───────────────────────────────────── */
+    .tabs{display:flex;background:#1e293b;border-bottom:1px solid #334155;flex-shrink:0}
+    .tab-btn{padding:10px 24px;cursor:pointer;font-size:14px;font-weight:600;border:none;background:transparent;color:#94a3b8;border-bottom:2px solid transparent;transition:all .2s}
+    .tab-btn.active{color:#38bdf8;border-bottom-color:#38bdf8;background:#0f172a}
+
+    /* ── LAYOUT ─────────────────────────────────── */
+    .tab-pane{display:none;flex:1;overflow:hidden}
+    .tab-pane.active{display:flex}
+
+    /* ══════════════════════════════════════════════
+       ABA CONVERSAS
+    ══════════════════════════════════════════════ */
+    #pane-conversas{flex-direction:row}
+
+    /* sidebar de pacientes */
+    .sidebar{width:280px;background:#1e293b;border-right:1px solid #334155;display:flex;flex-direction:column;flex-shrink:0}
+    .sidebar-header{padding:12px 16px;font-size:13px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #334155}
+    .leads-list{flex:1;overflow-y:auto}
+    .lead-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid #1a2744;transition:background .15s;display:flex;align-items:center;gap:10px}
+    .lead-item:hover{background:#0f172a}
+    .lead-item.active{background:#1d4ed8;border-left:3px solid #38bdf8}
+    .lead-avatar{width:36px;height:36px;border-radius:50%;background:#334155;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
+    .lead-info{flex:1;min-width:0}
+    .lead-nome{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .lead-preview{font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+    .bot-badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:9px;flex-shrink:0}
+    /* ── Funil badges ── */
+    .funil-badge{font-size:9px;font-weight:800;padding:2px 7px;border-radius:8px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
+    .fb-agendado{background:#1d4ed8;color:#bfdbfe}
+    .fb-atendido{background:#166534;color:#bbf7d0}
+    .fb-em_cadencia{background:#78350f;color:#fde68a}
+    .fb-nao_compareceu{background:#92400e;color:#fed7aa}
+    .fb-cancelado{background:#7f1d1d;color:#fecaca}
+    .fb-perdido {background:#374151;color:#d1d5db}
+    .fb-banco   {background:#1e1b4b;color:#c7d2fe}
+    .fb-importado{background:#134e4a;color:#99f6e4}
+    .cadencia-indicador{font-size:9px;font-weight:700;background:#92400e;color:#fed7aa;border-radius:6px;padding:1px 5px;margin-left:3px}
+    .nao-lidas-badge{font-size:10px;font-weight:800;background:#25d366;color:#fff;border-radius:50%;min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0}
+    /* ── Filtro funil ── */
+    .funil-filtros{padding:8px 10px;display:flex;flex-wrap:wrap;gap:5px;border-bottom:1px solid #1a2744;background:#0c1528}
+    .funil-chip{font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;cursor:pointer;border:1.5px solid transparent;transition:all .15s;user-select:none;letter-spacing:.03em}
+    .funil-chip.todos{background:#1e293b;color:#94a3b8;border-color:#334155}
+    .funil-chip.todos.ativo{background:#334155;color:#f1f5f9;border-color:#64748b}
+    .funil-chip.agendado{background:#1e3a5f;color:#93c5fd;border-color:#1d4ed8}
+    .funil-chip.agendado.ativo{background:#1d4ed8;color:#fff;border-color:#60a5fa}
+    .funil-chip.atendido{background:#14532d;color:#86efac;border-color:#166534}
+    .funil-chip.atendido.ativo{background:#166534;color:#fff;border-color:#4ade80}
+    .funil-chip.em_cadencia{background:#451a03;color:#fcd34d;border-color:#78350f}
+    .funil-chip.em_cadencia.ativo{background:#92400e;color:#fff;border-color:#fbbf24}
+    .funil-chip.nao_compareceu{background:#431407;color:#fed7aa;border-color:#9a3412}
+    .funil-chip.nao_compareceu.ativo{background:#9a3412;color:#fff;border-color:#fb923c}
+    .funil-chip.cancelado{background:#450a0a;color:#fca5a5;border-color:#7f1d1d}
+    .funil-chip.cancelado.ativo{background:#991b1b;color:#fff;border-color:#f87171}
+    .funil-chip.perdido{background:#1c1917;color:#a8a29e;border-color:#374151}
+    .funil-chip.perdido.ativo{background:#374151;color:#fff;border-color:#6b7280}
+    .funil-chip.banco{background:#0f0a2e;color:#a5b4fc;border-color:#1e1b4b}
+    .funil-chip.banco.ativo{background:#1e1b4b;color:#fff;border-color:#6366f1}
+    .funil-chip.importado{background:#042f2e;color:#5eead4;border-color:#134e4a}
+    .funil-chip.importado.ativo{background:#134e4a;color:#fff;border-color:#2dd4bf}
+    .bot-on{background:#166534;color:#86efac}
+    .bot-off{background:#7f1d1d;color:#fca5a5}
+
+    /* painel de chat */
+    .chat-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .chat-header{padding:14px 20px;background:#1e293b;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between}
+    .chat-header-info h2{font-size:15px;font-weight:700}
+    .chat-header-info small{font-size:12px;color:#94a3b8}
+    .btn-toggle-bot{padding:8px 16px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+    .btn-pause{background:#ef4444;color:#fff}
+    .btn-pause:hover{background:#dc2626}
+    .btn-resume{background:#22c55e;color:#fff}
+    .btn-resume:hover{background:#16a34a}
+    .btn-disabled{background:#334155;color:#64748b;cursor:not-allowed}
+
+    .mensagens{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+    .msg{max-width:72%;padding:10px 14px;border-radius:12px;font-size:13.5px;line-height:1.5;word-break:break-word}
+    .msg-paciente{align-self:flex-start;background:#1e293b;border:1px solid #334155;border-radius:4px 12px 12px 12px}
+    .msg-larissa{align-self:flex-end;background:#1d4ed8;border-radius:12px 4px 12px 12px}
+    .msg-atendente{align-self:flex-end;background:#7c3aed;border-radius:12px 4px 12px 12px}
+    .msg-meta{font-size:10px;color:#64748b;margin-top:4px;text-align:right}
+    .msg-remetente{font-size:10px;font-weight:700;margin-bottom:3px;color:#94a3b8}
+
+    .chat-input-area{padding:12px 16px;background:#1e293b;border-top:1px solid #334155;display:flex;gap:8px}
+    .chat-input-area textarea{flex:1;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:10px 14px;font-size:13px;resize:none;font-family:inherit;outline:none;transition:border .2s}
+    .chat-input-area textarea:focus{border-color:#38bdf8}
+    .btn-send{background:#38bdf8;color:#0f172a;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+    .btn-send:hover{background:#0ea5e9}
+
+    /* empty state */
+    .empty{flex:1;display:flex;align-items:center;justify-content:center;color:#475569;font-size:15px;text-align:center;padding:40px}
+
+    /* ══════════════════════════════════════════════
+       ABA AGENDA (semanal · estilo SimplesDental)
+    ══════════════════════════════════════════════ */
+    #pane-agenda{flex-direction:column;background:#0f172a}
+    .agenda-toolbar{padding:12px 24px;background:#1e293b;border-bottom:1px solid #334155;display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap}
+    .agenda-toolbar h2{font-size:16px;font-weight:700;color:#38bdf8;margin-right:8px}
+    .nav-btn{background:#334155;color:#e2e8f0;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:background .2s}
+    .nav-btn:hover{background:#475569}
+    .nav-btn.today{background:#1d4ed8;color:#fff}
+    .data-label{font-size:14px;font-weight:700;color:#e2e8f0;min-width:210px;text-align:center}
+    .btn-novo-slot{background:#22c55e;color:#000;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;margin-left:auto;transition:background .2s}
+    .btn-novo-slot:hover{background:#16a34a}
+
+    .agenda-body{flex:1;overflow:auto;padding:16px}
+
+    /* Grade semanal em CSS grid: 1 coluna de horário + 7 dias */
+    .week-table{display:grid;grid-template-columns:66px repeat(7,minmax(150px,1fr));gap:4px;min-width:1080px}
+    .wk-corner{background:transparent}
+    .wk-day-head{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 6px;text-align:center;position:sticky;top:0;z-index:5}
+    .wk-day-head.hoje{border-color:#38bdf8;background:#132133}
+    .wk-day-nome{font-size:12px;font-weight:700;color:#e2e8f0}
+    .wk-day-nome small{display:block;font-size:11px;color:#94a3b8;font-weight:600;margin-top:2px}
+    .wk-day-btns{display:flex;gap:4px;justify-content:center;margin-top:7px}
+    .wk-mini-btn{border:none;border-radius:6px;padding:4px 7px;font-size:10.5px;font-weight:700;cursor:pointer;transition:filter .15s}
+    .wk-mini-btn:hover{filter:brightness(1.12)}
+    .wk-mini-liberar{background:#166534;color:#dcfce7}
+    .wk-mini-apagar{background:#7f1d1d;color:#fee2e2}
+    .wk-mini-btn.disabled{background:#1e293b;color:#475569;cursor:not-allowed;filter:none;border:1px solid #334155}
+    .wk-camadas{font-size:10px;color:#64748b;margin-top:5px}
+
+    /* Todas as linhas da grade têm EXATAMENTE 16px — garante proporcionalidade dos balões */
+    .wk-hora{background:#1e293b;border:1px solid #334155;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#93c5fd;height:16px;min-height:16px}
+    .wk-cell{background:#131c2e;border:1px dashed #24324a;border-radius:8px;height:16px;min-height:16px;padding:0;position:relative;overflow:visible}
+    .wk-cell.vazio{opacity:.55}
+    /* Linhas intermediárias de 5 min: discretas, mesma altura 16px */
+    .wk-hora.mini{height:16px;min-height:16px;background:transparent;border:none;color:#334155;font-size:9px}
+    .wk-cell.mini{height:16px;min-height:16px;background:transparent;border:none}
+    .wk-cell.mini .wk-slot{font-size:10px;padding:2px 5px}
+    .wk-cell.vazio-mini{opacity:.25}
+    .wk-sep{grid-column:1 / -1;height:26px;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-top:1px dashed #334155;border-bottom:1px dashed #334155;margin:2px 0}
+    /* ── Linha do tempo — hora atual ───────────────────────── */
+    .wk-timeline{grid-column:1 / -1;height:3px;background:linear-gradient(90deg,transparent 0%,#ef4444 6%,#ef4444 100%);position:relative;margin:2px 0;z-index:8;border-radius:2px}
+    .wk-timeline::before{content:'';position:absolute;left:4.5%;top:-5px;width:11px;height:11px;background:#ef4444;border-radius:50%;border:2px solid #fca5a5;box-shadow:0 0 6px #ef444488}
+    .wk-timeline-label{position:absolute;left:1px;top:-11px;font-size:10px;font-weight:800;color:#ef4444;background:#0f172a;padding:1px 6px;border-radius:3px;white-space:nowrap;pointer-events:none;border:1px solid #ef444444;letter-spacing:.03em}
+    /* Células e rótulos de horários que já passaram (dia de hoje) — máscara leve */
+    .wk-cell.passado{opacity:.55}
+    .wk-hora.passado-hora{opacity:.4;color:#475569}
+
+    /* Slot flutua sobre as linhas abaixo (proporcional à duração) */
+    .wk-slot{position:absolute;top:0;z-index:10;border-radius:6px;padding:4px 5px;cursor:pointer;font-size:10.5px;line-height:1.25;overflow:hidden;transition:filter .15s;border:1px solid transparent;box-sizing:border-box}
+    .wk-slot:hover{filter:brightness(1.15)}
+    .wk-slot .wk-slot-badge{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+    .wk-slot .wk-slot-nome{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+
+    /* Status cores */
+    .s-livre{background:#166534;color:#86efac}
+    .dot-livre{background:#22c55e}
+    .s-ocupado{background:#1e3a8a;color:#93c5fd}
+    .dot-ocupado{background:#3b82f6}
+    .s-confirmado{background:#4c1d95;color:#c4b5fd}
+    .dot-confirmado{background:#8b5cf6}
+    .s-nao_confirmado{background:#713f12;color:#fde68a}
+    .dot-nao_confirmado{background:#f59e0b}
+    .s-cancelado{background:#3f3f46;color:#a1a1aa}
+    .dot-cancelado{background:#71717a}
+    .s-bloqueado{background:#1c1c1c;color:#94a3b8}
+    .dot-bloqueado{background:#6b7280}
+
+    /* Cores dos 5 status principais */
+    .wk-slot.slot-livre          {background:#dcfce7;color:#166534;border-color:#86efac}  /* verde claro */
+    .wk-slot.slot-agendado       {background:#dbeafe;color:#1e40af;border-color:#93c5fd}  /* azul claro */
+    .wk-slot.slot-nao_confirmado {background:#fef9c3;color:#854d0e;border-color:#fde047}  /* amarelo */
+    .wk-slot.slot-confirmado     {background:#14532d;color:#bbf7d0;border-color:#166534}  /* verde escuro */
+    .wk-slot.slot-cancelado      {background:#fee2e2;color:#991b1b;border-color:#fca5a5}  /* vermelho */
+    /* 'ocupado' legado — mesmo visual de 'agendado' */
+    .wk-slot.slot-ocupado        {background:#dbeafe;color:#1e40af;border-color:#93c5fd}
+    .wk-slot.slot-bloqueado      {background:#1c1c1c;color:#cbd5e1;border-color:#3f3f46}
+
+    /* ── MODAL ──────────────────────────────────── */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;align-items:center;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:24px;width:440px;max-width:95vw;max-height:90vh;overflow-y:auto}
+    .modal h3{font-size:16px;font-weight:700;margin-bottom:16px;color:#38bdf8}
+    .form-row{display:flex;gap:10px}
+    .form-row .form-group{flex:1}
+    .form-group{margin-bottom:14px}
+    .form-group label{display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:5px;text-transform:uppercase}
+    .form-group input,.form-group select,.form-group textarea{width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:9px 12px;border-radius:7px;font-size:13px;font-family:inherit;outline:none;transition:border .2s}
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#38bdf8}
+    .form-group select option{background:#1e293b}
+    .form-group textarea{resize:vertical;min-height:64px}
+    .modal-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end;flex-wrap:wrap}
+    .btn-modal{padding:9px 18px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+    .btn-cancel-modal{background:#334155;color:#e2e8f0}
+    .btn-cancel-modal:hover{background:#475569}
+    .btn-confirm-modal{background:#38bdf8;color:#0f172a}
+    .btn-confirm-modal:hover{background:#0ea5e9}
+    .btn-del-modal{background:#ef4444;color:#fff;margin-right:auto}
+    .btn-del-modal:hover{background:#dc2626}
+
+    /* scrollbar */
+    ::-webkit-scrollbar{width:8px;height:8px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:#334155;border-radius:4px}
+
+    /* ══════════════════════════════════════════════
+       ABA IMPORTAR
+    ══════════════════════════════════════════════ */
+    #pane-importar{flex-direction:column;background:#0f172a;align-items:center;justify-content:flex-start;padding:32px 24px;overflow-y:auto}
+    .importar-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:28px 32px;width:100%;max-width:640px}
+    .importar-card h2{font-size:16px;font-weight:700;color:#38bdf8;margin-bottom:4px}
+    .importar-card p.sub{font-size:12px;color:#64748b;margin-bottom:16px}
+    .importar-card textarea{width:100%;height:180px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:12px;font-size:12.5px;font-family:monospace;resize:vertical;outline:none;transition:border .2s}
+    .importar-card textarea:focus{border-color:#38bdf8}
+    .importar-card .hint{font-size:11px;color:#475569;margin-top:6px;margin-bottom:16px}
+    .btn-importar{background:#38bdf8;color:#0f172a;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s}
+    .btn-importar:hover{background:#0ea5e9}
+    .btn-importar:disabled{background:#334155;color:#64748b;cursor:not-allowed}
+    .importar-resultado{margin-top:18px;background:#0f172a;border:1px solid #1a2744;border-radius:8px;padding:14px;font-size:13px;display:none}
+    .importar-resultado .ok{color:#4ade80;font-weight:700}
+    .importar-resultado .ig{color:#fbbf24;font-weight:700}
+    .importar-resultado .er{color:#f87171;font-size:11px;margin-top:4px}
+    .importar-fila-box{margin-top:20px;background:#0c1528;border:1px solid #1a2744;border-radius:8px;padding:14px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+    .importar-fila-box .fila-num{font-size:24px;font-weight:800;color:#38bdf8}
+    .importar-fila-box .fila-label{font-size:11px;color:#64748b;margin-top:2px}
+    .importar-fila-box .fila-item{text-align:center}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="dot"></div>
+  <h1>🦷 Larissa</h1>
+  <span>Dashboard · Reabilita Odontologia</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+    <span id="perfil-nome" style="font-size:12px;color:#64748b"></span>
+    <button onclick="sairDashboard()" title="Sair" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:7px;padding:4px 10px;font-size:12px;cursor:pointer">🚪 Sair</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="mostrarAba('conversas')">💬 Conversas</button>
+  <button class="tab-btn" onclick="mostrarAba('agenda')">📅 Agenda</button>
+  <button class="tab-btn" onclick="mostrarAba('importar')">📥 Importar</button>
+</div>
+
+<!-- ─── ABA CONVERSAS (mantida) ───────────────────── -->
+<div id="pane-conversas" class="tab-pane active">
+
+  <div class="sidebar">
+    <div class="sidebar-header">Pacientes</div>
+    <!-- Filtros de funil com contadores -->
+    <div class="funil-filtros" id="funil-filtros">
+      <span class="funil-chip todos ativo" data-funil="todos" onclick="toggleFunilChip(this)">Todos <span class="cnt">0</span></span>
+      <span class="funil-chip agendado" data-funil="agendado" onclick="toggleFunilChip(this)">📅 Agendado <span class="cnt">0</span></span>
+      <span class="funil-chip atendido" data-funil="atendido" onclick="toggleFunilChip(this)">✅ Atendido <span class="cnt">0</span></span>
+      <span class="funil-chip em_cadencia" data-funil="em_cadencia" onclick="toggleFunilChip(this)">🔄 Em Cadência <span class="cnt">0</span></span>
+      <span class="funil-chip nao_compareceu" data-funil="nao_compareceu" onclick="toggleFunilChip(this)">🚫 Não Compareceu <span class="cnt">0</span></span>
+      <span class="funil-chip cancelado" data-funil="cancelado" onclick="toggleFunilChip(this)">🔴 Cancelado <span class="cnt">0</span></span>
+      <span class="funil-chip perdido" data-funil="perdido" onclick="toggleFunilChip(this)">❌ Perdido <span class="cnt">0</span></span>
+      <span class="funil-chip banco" data-funil="banco" onclick="toggleFunilChip(this)">🗄️ Banco <span class="cnt">0</span></span>
+      <span class="funil-chip importado" data-funil="importado" onclick="toggleFunilChip(this)">📥 Importado <span class="cnt">0</span></span>
+    </div>
+    <div class="leads-list" id="leads-list">
+      <div style="padding:20px;color:#475569;font-size:13px">Carregando...</div>
+    </div>
+  </div>
+
+  <div class="chat-panel">
+    <div id="chat-empty" class="empty">
+      Selecione um paciente na lista<br>para ver a conversa.
+    </div>
+    <div id="chat-view" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <h2 id="chat-nome">—</h2>
+          <small id="chat-numero">—</small>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select id="select-status-funil" onchange="mudarStatus(this.value)" title="Alterar status do lead" style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:7px;padding:5px 8px;font-size:12px;font-weight:700;cursor:pointer;outline:none;">
+            <option value="banco">🗄️ Banco</option>
+            <option value="em_cadencia">🔄 Em Cadência</option>
+            <option value="nao_compareceu">🚫 Não Compareceu</option>
+            <option value="agendado">📅 Agendado</option>
+            <option value="atendido">✅ Atendido</option>
+            <option value="cancelado">🔴 Cancelado</option>
+            <option value="perdido">❌ Perdido</option>
+            <option value="importado">📥 Importado</option>
+          </select>
+          <button id="btn-nao-compareceu" class="btn-toggle-bot" style="background:#9a3412;color:#fff;display:none" onclick="marcarNaoCompareceu()" title="Paciente não compareceu">🚫 Não compareceu</button>
+          <button id="btn-toggle-cadencia" class="btn-toggle-bot" style="background:#78350f;color:#fde68a;display:none" onclick="toggleCadencia()">🔄 Cadência</button>
+          <button id="btn-toggle-bot" class="btn-toggle-bot btn-disabled" onclick="toggleBot()">—</button>
+        </div>
+      </div>
+      <div class="mensagens" id="mensagens"></div>
+      <!-- Campo atendente (P5) -->
+      <div id="campo-atendente" style="background:#1e293b;border-top:1px solid #1a2744;padding:6px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:11px;color:#64748b;white-space:nowrap">👩 Atendendo como:</span>
+        <input id="nome-atendente" value="Duda" style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:3px 8px;font-size:12px;width:110px;outline:none"/>
+        <label style="font-size:11px;color:#94a3b8;display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none">
+          <input type="checkbox" id="toggle-nome-paciente" style="cursor:pointer"/>
+          Mostrar nome para paciente
+        </label>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="input-msg" rows="2" placeholder="Digite a mensagem manual..." onkeydown="teclaEnter(event)"></textarea>
+        <button class="btn-send" onclick="enviarManual()">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── ABA AGENDA (semanal) ──────────────────────── -->
+<div id="pane-agenda" class="tab-pane">
+
+  <div class="agenda-toolbar">
+    <h2>📅 Agenda</h2>
+    <button class="nav-btn" onclick="navegarSemana(-1)">◀ Semana anterior</button>
+    <button class="nav-btn today" onclick="irSemanaHoje()">Hoje</button>
+    <button class="nav-btn" onclick="navegarSemana(1)">Próxima semana ▶</button>
+    <div class="data-label" id="agenda-data-label">—</div>
+    <button class="btn-novo-slot" onclick="abrirModalNovoSlot()">➕ Novo Horário</button>
+  </div>
+
+  <div class="agenda-body">
+    <div class="week-table" id="week-table">
+      <div class="wk-corner"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── MODAL NOVO SLOT ───────────────────────────── -->
+<div class="modal-overlay" id="modal-novo-slot">
+  <div class="modal">
+    <h3>➕ Novo Horário Avulso</h3>
+    <div class="form-group">
+      <label>Data</label>
+      <input type="date" id="ns-data">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Hora Início</label>
+        <input type="time" id="ns-inicio">
+      </div>
+      <div class="form-group">
+        <label>Hora Fim</label>
+        <input type="time" id="ns-fim">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Observação (opcional)</label>
+      <textarea id="ns-obs" placeholder="Ex: Consultório 2 · Dr. Carlos"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal btn-cancel-modal" onclick="fecharModal('modal-novo-slot')">Cancelar</button>
+      <button class="btn-modal btn-confirm-modal" onclick="criarSlot()">Criar Horário</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL EDITAR SLOT ─────────────────────────── -->
+<div class="modal-overlay" id="modal-slot">
+  <div class="modal">
+    <h3>📋 Editar Horário</h3>
+    <input type="hidden" id="edit-slot-id">
+    <div class="form-group">
+      <label>Nome do paciente</label>
+      <input type="text" id="edit-slot-nome" placeholder="Nome do paciente">
+    </div>
+    <div class="form-group">
+      <label>Telefone</label>
+      <input type="text" id="edit-slot-tel" placeholder="Ex: 5591999998888">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Hora Início</label>
+        <input type="time" id="edit-slot-inicio">
+      </div>
+      <div class="form-group">
+        <label>Hora Fim</label>
+        <input type="time" id="edit-slot-fim">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Status</label>
+      <select id="edit-slot-status">
+        <option value="livre">🟢 Livre</option>
+        <option value="agendado">🔵 Agendado</option>
+        <option value="nao_confirmado">🟡 Não confirmado</option>
+        <option value="confirmado">🟢 Confirmado</option>
+        <option value="cancelado">🔴 Cancelado</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Observação</label>
+      <textarea id="edit-slot-obs" placeholder="Observação"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal btn-del-modal" onclick="deletarSlot()">🗑️ Apagar este slot</button>
+      <button class="btn-modal btn-cancel-modal" onclick="fecharModal('modal-slot')">Cancelar</button>
+      <button class="btn-modal btn-confirm-modal" onclick="salvarSlot()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── ABA IMPORTAR ───────────────────────────── -->
+<div id="pane-importar" class="tab-pane">
+  <div class="importar-card">
+    <h2>📥 Importar Leads</h2>
+    <p class="sub">Cole os números abaixo — um por linha. Eles entram na fila e são ativados automaticamente (10/dia).</p>
+    <textarea id="importar-textarea" placeholder="5591999998888&#10;5591999997777 | Maria Silva&#10;5591999996666 | João | ortodontia&#10;# linhas com # são ignoradas"></textarea>
+    <p class="hint">Formato: <code>número</code> &nbsp;|&nbsp; <code>nome (opcional)</code> &nbsp;|&nbsp; <code>interesse (opcional)</code></p>
+    <button class="btn-importar" id="btn-importar" onclick="importarLeads()">📥 Importar Leads</button>
+    <div class="importar-resultado" id="importar-resultado"></div>
+    <div class="importar-fila-box" id="importar-fila-box" style="display:none">
+      <div class="fila-item">
+        <div class="fila-num" id="fila-aguardando">—</div>
+        <div class="fila-label">Aguardando ativação</div>
+      </div>
+      <div class="fila-item">
+        <div class="fila-num" id="fila-ativados">—</div>
+        <div class="fila-label">Ativados (em cadência)</div>
+      </div>
+      <div class="fila-item">
+        <div class="fila-num" id="fila-total">—</div>
+        <div class="fila-label">Total na fila</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════════════
+let numeroAtivo = null;
+let contatoAtivo = null;
+let atualizadorChat = null;
+let abaAtual = 'conversas';
+
+// Semana exibida — começa sempre na SEGUNDA-feira (YYYY-MM-DD)
+let semanaInicio = segundaDaSemana(new Date());
+// Cache dos slots da semana: { 'YYYY-MM-DD': [slots] }
+let dadosSemana = {};
+// Índice de slots por id (para abrir o modal de edição rapidamente)
+let slotsPorId = {};
+// Trava para evitar cliques concorrentes em Liberar/Apagar (writes sequenciais)
+let ocupadoEscrevendo = false;
+
+function minToHH(m) {
+  return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+}
+
+// HORARIOS_LIBERAR — usados pelo botão ⚡ Liberar (permanecem de 30 em 30 min).
+// 6 de manhã + 8 de tarde = 14 slots por camada/consultório.
+const HORARIOS_LIBERAR = [
+  {ini:'09:00',fim:'09:30'},{ini:'09:30',fim:'10:00'},{ini:'10:00',fim:'10:30'},
+  {ini:'10:30',fim:'11:00'},{ini:'11:00',fim:'11:30'},{ini:'11:30',fim:'12:00'},
+  {ini:'14:00',fim:'14:30'},{ini:'14:30',fim:'15:00'},{ini:'15:00',fim:'15:30'},
+  {ini:'15:30',fim:'16:00'},{ini:'16:00',fim:'16:30'},{ini:'16:30',fim:'17:00'},
+  {ini:'17:00',fim:'17:30'},{ini:'17:30',fim:'18:00'}
+];
+
+// HORARIOS_GRADE — grade visual de 5 em 5 min (para exibir slots em qualquer
+// horário, inclusive avulsos tipo 09:45). Manhã 09:00–11:55, tarde 14:00–17:55.
+const HORARIOS_GRADE = [];
+for (let m = 9*60;  m <= 11*60+55; m += 5) HORARIOS_GRADE.push(minToHH(m));  // 36 (manhã)
+for (let m = 14*60; m <= 17*60+55; m += 5) HORARIOS_GRADE.push(minToHH(m));  // 48 (tarde)
+// total: 84 linhas
+const IDX_SEPARADOR = 36;          // após os 36 horários da manhã entra o almoço
+const MAX_CAMADAS = 3;             // até 3 consultórios lado a lado
+const DIAS_SEMANA = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+// Uma linha "cheia" (com label visível e altura maior) é sempre :00 ou :30.
+function linhaCheia(hhmm) {
+  const mm = hhmm.slice(3);
+  return mm === '00' || mm === '30';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ABAS
+// ═══════════════════════════════════════════════════════════════
+function mostrarAba(aba) {
+  abaAtual = aba;
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pane-' + aba).classList.add('active');
+  event.target.classList.add('active');
+  if (aba === 'agenda') carregarAgenda();
+  if (aba === 'conversas') carregarLeads();
+  if (aba === 'importar') carregarFilaImportacao();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FUNIL CRM — estado global e helpers (escopo de módulo)
+// ═══════════════════════════════════════════════════════════════
+let _todosLeads = [];           // cache de todos os leads carregados
+let _funilAtivos = new Set();   // set vazio = "Todos" (sem filtro)
+
+function toggleFunilChip(chip) {
+  const val = chip.dataset.funil;
+  if (val === 'todos') {
+    _funilAtivos.clear();
+  } else {
+    if (_funilAtivos.has(val)) {
+      _funilAtivos.delete(val);
+    } else {
+      _funilAtivos.add(val);
+    }
+  }
+  // Atualiza visual dos chips
+  document.querySelectorAll('.funil-chip').forEach(c => {
+    const cv = c.dataset.funil;
+    if (cv === 'todos') {
+      c.classList.toggle('ativo', _funilAtivos.size === 0);
+    } else {
+      c.classList.toggle('ativo', _funilAtivos.has(cv));
+    }
+  });
+  renderLeads(_todosLeads);
+}
+
+function _labelFunil(sf) {
+  const m = {
+    agendado:'📅 Agendado', atendido:'✅ Atendido',
+    em_cadencia:'🔄 Em Cadência', nao_compareceu:'🚫 Não Compareceu',
+    cancelado:'🔴 Cancelado', perdido:'❌ Perdido', banco:'🗄️ Banco',
+    importado:'📥 Importado', novo:'🆕 Novo'
+  };
+  return m[sf] || (sf ? sf.replace('_',' ') : '🔄 Em Cadência');
+}
+
+function _atualizarContadoresFunil(leads) {
+  const counts = {agendado:0, atendido:0, em_cadencia:0, nao_compareceu:0, cancelado:0, perdido:0, banco:0, importado:0};
+  leads.forEach(l => {
+    const sf = l.status_funil || 'em_cadencia';
+    if (counts[sf] !== undefined) counts[sf]++;
+  });
+  const total = leads.length;
+  document.querySelectorAll('.funil-chip').forEach(c => {
+    const v = c.dataset.funil;
+    const cnt = c.querySelector('.cnt');
+    if (!cnt) return;
+    cnt.textContent = v === 'todos' ? total : (counts[v] || 0);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ABA CONVERSAS — LISTA DE LEADS (mantida)
+// ═══════════════════════════════════════════════════════════════
+async function carregarLeads() {
+  try {
+    const r = await fetch('/api/leads');
+    const d = await r.json();
+    _todosLeads = d.leads || [];
+    _atualizarContadoresFunil(_todosLeads);
+    renderLeads(_todosLeads);
+  } catch(e) {
+    document.getElementById('leads-list').innerHTML =
+      '<div style="padding:20px;color:#ef4444;font-size:13px">Erro ao carregar leads.</div>';
+  }
+}
+
+function renderLeads(leads) {
+  // Aplica filtro de funil se houver seleção ativa
+  const visiveis = _funilAtivos.size > 0
+    ? leads.filter(l => _funilAtivos.has(l.status_funil || 'em_cadencia'))
+    : leads;
+
+  const el = document.getElementById('leads-list');
+  if (!visiveis.length) {
+    el.innerHTML = '<div style="padding:20px;color:#475569;font-size:13px">Nenhum paciente nesse filtro.</div>';
+    return;
+  }
+  el.innerHTML = visiveis.map(l => {
+    const ini = (l.nome || l.numero || '?')[0].toUpperCase();
+    const botOn = l.bot_ativo !== 0;
+    const ativo = l.numero === numeroAtivo ? 'active' : '';
+    const sf = l.status_funil || 'em_cadencia';
+    const cadIndicador = l.cadencia_ativa
+      ? `<span class="cadencia-indicador">${l.cadencia_toque_atual}/${l.cadencia_total_toques}</span>` : '';
+    // Nome vermelho + ícone de alerta quando precisa_humano=1
+    const precisaHumano = l.precisa_humano == 1;
+    const nomeStyle = precisaHumano ? 'color:#ef4444;font-weight:700' : '';
+    const alertaIcon = precisaHumano ? '<span title="Intervenção humana necessária" style="color:#ef4444;font-size:13px;margin-left:3px">🆘</span>' : '';
+    // Borda lateral para flag_atrito (amarelo=leve, vermelho=grave)
+    const atrito = l.flag_atrito;
+    let atritoBorda = '', atritoIcon = '';
+    if (atrito === 'grave') { atritoBorda = 'border-left:3px solid #f97316 !important;'; atritoIcon = '<span title="Insatisfação grave" style="font-size:11px;margin-left:3px">🔴</span>'; }
+    else if (atrito === 'leve') { atritoBorda = 'border-left:3px solid #eab308 !important;'; atritoIcon = '<span title="Insatisfação leve" style="font-size:11px;margin-left:3px">🟡</span>'; }
+    // (Balão de mensagens não-lidas removido a pedido — a lista já reordena
+    //  colocando as conversas com novidade no topo, que é o que importa.)
+    return `<div class="lead-item ${ativo}" style="${atritoBorda}" onclick="selecionarLead('${l.numero}')">
+      <div class="lead-avatar" style="${precisaHumano ? 'background:#ef4444' : ''}">${ini}</div>
+      <div class="lead-info">
+        <div class="lead-nome" style="${nomeStyle}">${l.nome || l.numero}${alertaIcon}${atritoIcon}</div>
+        <div class="lead-preview">${_labelFunil(sf)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:3px">
+          <span class="funil-badge fb-${sf}">${sf.replace('_',' ')}</span>
+          ${cadIndicador}
+        </div>
+        <span class="bot-badge ${botOn ? 'bot-on' : 'bot-off'}">${botOn ? '🤖' : '⏸️'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Sessão / logout ──────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const r = await fetch('/api/auth/me');
+    if (r.ok) {
+      const d = await r.json();
+      const el = document.getElementById('perfil-nome');
+      if (el) el.textContent = d.perfil === 'admin' ? '🔑 Admin' : '👩 Duda';
+    } else {
+      window.location.href = '/dashboard';
+    }
+  } catch(e) { /* offline — ignora */ }
+})();
+
+async function sairDashboard() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/dashboard';
+}
+
+carregarLeads();
+setInterval(carregarLeads, 5000);  // 5s — mesma cadência do chat, para reordenar rápido
+
+// Atualiza a linha do tempo (hora atual) a cada minuto quando a agenda estiver visível
+setInterval(() => {
+  if (abaAtual === 'agenda' && Object.keys(dadosSemana).length > 0) {
+    renderSemana(Object.keys(dadosSemana).sort());
+  }
+}, 60000);
+
+// ═══════════════════════════════════════════════════════════════
+//  SELECIONAR LEAD → CHAT (mantido)
+// ═══════════════════════════════════════════════════════════════
+async function selecionarLead(numero) {
+  numeroAtivo = numero;
+  if (atualizadorChat) clearInterval(atualizadorChat);
+
+  document.getElementById('chat-empty').style.display = 'none';
+  const cv = document.getElementById('chat-view');
+  cv.style.display = 'flex';
+
+  // 1) Zera badge localmente de imediato (visual instantâneo)
+  const _lidoIdx = _todosLeads.findIndex(l => l.numero === numero);
+  if (_lidoIdx >= 0) _todosLeads[_lidoIdx].mensagens_nao_lidas = 0;
+  renderLeads(_todosLeads);
+
+  // 2) Persiste no servidor com await — garante que o BD já gravou ANTES do próximo carregarLeads
+  await fetch(`/api/leads/${numero}/marcar-lido`, {method: 'POST'}).catch(()=>{});
+
+  await atualizarChat();
+  atualizadorChat = setInterval(atualizarChat, 5000);
+  // Não chama carregarLeads() aqui — o setInterval de 5s já cuida e agora
+  // o BD já tem dashboard_visto_ate atualizado, então quando recarregar retornará 0
+}
+
+async function atualizarChat() {
+  if (!numeroAtivo) return;
+  try {
+    const r = await fetch(`/api/leads/${numeroAtivo}`);
+    const d = await r.json();
+    contatoAtivo = d.lead;
+    renderChat(d.lead, d.historico || []);
+  } catch(e) {}
+}
+
+function renderChat(lead, historico) {
+  document.getElementById('chat-nome').textContent = lead.nome || lead.numero;
+  document.getElementById('chat-numero').textContent = lead.numero;
+
+  const btn = document.getElementById('btn-toggle-bot');
+  const botOn = lead.bot_ativo !== 0;
+  btn.textContent = botOn ? '⏸️ Pausar Larissa' : '▶️ Religar Larissa';
+  btn.className = 'btn-toggle-bot ' + (botOn ? 'btn-pause' : 'btn-resume');
+
+  // Dropdown de status — sincroniza com o status atual do lead
+  const sf = lead.status_funil || 'banco';
+  const sel = document.getElementById('select-status-funil');
+  if (sel) sel.value = sf;
+
+  // Botão "Não compareceu" — aparece quando status é agendado ou atendido
+  const btnNC = document.getElementById('btn-nao-compareceu');
+  btnNC.style.display = (sf === 'agendado' || sf === 'atendido') ? '' : 'none';
+
+  // Botão toggle cadência
+  const btnCad = document.getElementById('btn-toggle-cadencia');
+  const cadAtiva = lead.cadencia_ativa;
+  btnCad.style.display = '';
+  btnCad.textContent = cadAtiva ? '⏹ Parar Cadência' : '🔄 Iniciar Cadência';
+  btnCad.style.background = cadAtiva ? '#374151' : '#78350f';
+  btnCad.style.color = cadAtiva ? '#d1d5db' : '#fde68a';
+
+  const el = document.getElementById('mensagens');
+  const atBottom = el.scrollHeight - el.clientHeight <= el.scrollTop + 40;
+  el.innerHTML = historico.map(m => {
+    const cls = m.remetente === 'PACIENTE' ? 'msg-paciente'
+              : m.remetente === 'LARISSA' ? 'msg-larissa' : 'msg-atendente';
+    const hora = m.timestamp ? m.timestamp.slice(11,16) : '';
+    const quem = m.remetente === 'ATENDENTE' ? '👩 Duda' :
+                 m.remetente === 'LARISSA' ? '🤖 Larissa' : '👤 Paciente';
+    // Quebra em balões separados quando há [PAUSA] (mesma lógica do WhatsApp)
+    const partes = (m.texto || '').split('[PAUSA]')
+                     .map(p => p.trim()).filter(p => p.length > 0);
+    const baloes = partes.length ? partes : [''];
+    return baloes.map((parte, i) => `<div class="msg ${cls}">
+      ${i === 0 ? `<div class="msg-remetente">${quem}</div>` : ''}
+      ${escHtml(parte)}
+      ${i === baloes.length - 1 ? `<div class="msg-meta">${hora}</div>` : ''}
+    </div>`).join('');
+  }).join('');
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+
+function escHtml(t) {
+  return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\n/g,'<br>').replace(/\*(.*?)\*/g,'<strong>$1</strong>');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MUDAR STATUS FUNIL — dropdown do header
+// ═══════════════════════════════════════════════════════════════
+async function mudarStatus(novoStatus) {
+  if (!numeroAtivo || !novoStatus) return;
+  const labels = {
+    banco: '🗄️ Banco', em_cadencia: '🔄 Em Cadência',
+    nao_compareceu: '🚫 Não Compareceu', agendado: '📅 Agendado',
+    atendido: '✅ Atendido', cancelado: '🔴 Cancelado', perdido: '❌ Perdido'
+  };
+  const statusAtual = (contatoAtivo || {}).status_funil || '';
+  if (novoStatus === statusAtual) return; // sem mudança
+  const label = labels[novoStatus] || novoStatus;
+  if (!confirm(`Alterar status para ${label}?${['agendado','atendido','cancelado','perdido'].includes(novoStatus) ? '\n\n⚠️ A cadência ativa será encerrada automaticamente.' : ''}`)) {
+    // Reverte o select pro valor anterior
+    const sel = document.getElementById('select-status-funil');
+    if (sel) sel.value = statusAtual;
+    return;
+  }
+  try {
+    const r = await fetch(`/api/leads/${numeroAtivo}/funil`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({status: novoStatus})
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.detail || 'Erro');
+    await atualizarChat();
+    carregarLeads();
+    const aviso = d.cadencia_cancelada ? ' (cadência encerrada)' : '';
+    mostrarToast(`Status atualizado: ${label}${aviso}`, '#38bdf8');
+  } catch(e) {
+    mostrarToast('Erro ao alterar status.', '#ef4444');
+    // Reverte o select
+    const sel = document.getElementById('select-status-funil');
+    if (sel && contatoAtivo) sel.value = contatoAtivo.status_funil || 'banco';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CADÊNCIA — botões do perfil
+// ═══════════════════════════════════════════════════════════════
+async function marcarNaoCompareceu() {
+  if (!numeroAtivo) return;
+  if (!confirm('Marcar que este paciente não compareceu?')) return;
+  try {
+    const r = await fetch(`/api/leads/${numeroAtivo}/nao-compareceu`, {method:'POST'});
+    const d = await r.json();
+    await atualizarChat(); carregarLeads();
+    mostrarToast('🚫 Marcado como não compareceu — acolhimento será enviado amanhã.', '#f59e0b');
+  } catch(e) { mostrarToast('Erro ao marcar não compareceu.', '#ef4444'); }
+}
+
+async function toggleCadencia() {
+  if (!numeroAtivo) return;
+  try {
+    const r = await fetch(`/api/leads/${numeroAtivo}/cadencia/toggle`, {method:'PATCH',
+      headers:{'Content-Type':'application/json'}, body:'{}'});
+    const d = await r.json();
+    await atualizarChat(); carregarLeads();
+    const msg = d.cadencia_ativa ? '🔄 Cadência iniciada!' : '⏹ Cadência encerrada.';
+    mostrarToast(msg, d.cadencia_ativa ? '#f59e0b' : '#64748b');
+  } catch(e) { mostrarToast('Erro ao alternar cadência.', '#ef4444'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TOGGLE BOT (mantido)
+// ═══════════════════════════════════════════════════════════════
+async function toggleBot() {
+  if (!numeroAtivo) return;
+  try {
+    const r = await fetch(`/api/leads/${numeroAtivo}/toggle-bot`, {method:'POST'});
+    const d = await r.json();
+    await atualizarChat();
+    carregarLeads();
+    const msg = d.bot_ativo ? '▶️ Larissa reativada!' : '⏸️ Larissa pausada — você pode responder manualmente.';
+    mostrarToast(msg, d.bot_ativo ? '#22c55e' : '#f59e0b');
+  } catch(e) { mostrarToast('Erro ao alternar bot.', '#ef4444'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ENVIO MANUAL (Duda) (mantido)
+// ═══════════════════════════════════════════════════════════════
+async function enviarManual() {
+  if (!numeroAtivo) return;
+  const inp = document.getElementById('input-msg');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  // Lê campo atendente (P5)
+  const nomeAt  = (document.getElementById('nome-atendente')?.value || 'Duda').trim() || 'Duda';
+  const mostrar = document.getElementById('toggle-nome-paciente')?.checked || false;
+  // Prefixo visível ao paciente quando toggle ligado
+  const prefixo = mostrar ? `👩 ${nomeAt} — Reabilita: ` : '';
+  const msgFinal = prefixo + msg;
+  inp.value = '';
+  try {
+    const r = await fetch(`/api/leads/${numeroAtivo}/mensagem`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({mensagem: msgFinal, remetente: 'ATENDENTE', nome_atendente: nomeAt})
+    });
+    const d = await r.json();
+    await atualizarChat();
+    if (!d.enviado_whatsapp) mostrarToast('⚠️ Salvo mas não enviado ao WhatsApp (bridge offline?)', '#f59e0b');
+  } catch(e) { mostrarToast('Erro ao enviar mensagem.', '#ef4444'); }
+}
+
+function teclaEnter(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarManual(); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ABA AGENDA — VISÃO SEMANAL
+// ═══════════════════════════════════════════════════════════════
+
+// Retorna a segunda-feira (YYYY-MM-DD) da semana de uma data.
+function segundaDaSemana(dt) {
+  const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+  const dia = d.getDay();               // 0=Dom ... 6=Sáb
+  const offset = (dia + 6) % 7;         // dias desde a segunda
+  d.setDate(d.getDate() - offset);
+  return d.toISOString().slice(0,10);
+}
+
+// Soma "n" dias a uma data YYYY-MM-DD e devolve YYYY-MM-DD.
+function somarDias(dataStr, n) {
+  const dt = new Date(dataStr + 'T12:00:00');
+  dt.setDate(dt.getDate() + n);
+  return dt.toISOString().slice(0,10);
+}
+
+function ddmm(dataStr) {
+  const [y,m,d] = dataStr.split('-');
+  return `${d}/${m}`;
+}
+
+// Carrega os 7 dias da semana (leituras em paralelo — só as escritas são sequenciais).
+async function carregarAgenda() {
+  const dias = [];
+  for (let i = 0; i < 7; i++) dias.push(somarDias(semanaInicio, i));
+
+  const ini = ddmm(dias[0]), fim = ddmm(dias[6]);
+  document.getElementById('agenda-data-label').textContent = `Semana de ${ini} a ${fim}`;
+
+  try {
+    const respostas = await Promise.all(dias.map(dt => fetch(`/api/agenda/${dt}`).then(r => r.json())));
+    dadosSemana = {};
+    dias.forEach((dt, i) => { dadosSemana[dt] = (respostas[i] && respostas[i].slots) || []; });
+    renderSemana(dias);
+  } catch(e) {
+    mostrarToast('Erro ao carregar a agenda da semana.', '#ef4444');
+  }
+}
+
+// Calcula informações de um dia: total, ocupados (não-livres) e nº de camadas.
+function infoDia(slots) {
+  const naoLivres = slots.filter(s => (s.status || 'livre') !== 'livre').length;
+  let camadas = 0;
+  HORARIOS_LIBERAR.forEach(h => {
+    const c = slots.filter(s => s.hora_inicio === h.ini).length;
+    if (c > camadas) camadas = c;
+  });
+  return { total: slots.length, naoLivres, camadas };
+}
+
+function renderSemana(dias) {
+  const hoje = new Date().toISOString().slice(0,10);
+  const tabela = document.getElementById('week-table');
+  slotsPorId = {};
+
+  let html = '<div class="wk-corner"></div>';
+
+  // Cabeçalho dos 7 dias (nome + data + botões Liberar/Apagar)
+  dias.forEach((dt, i) => {
+    const slots = dadosSemana[dt] || [];
+    const info = infoDia(slots);
+    // Regra: Liberar/Apagar protegem dias com pacientes (qualquer slot não-livre
+    // desabilita ambos). Liberar some ao atingir 3 camadas; Apagar exige >=1 camada.
+    const temPacientes = info.naoLivres > 0;
+    const podeLiberar = !temPacientes && info.camadas < MAX_CAMADAS;
+    const podeApagar  = !temPacientes && info.camadas >= 1;
+
+    const clsLiberar = 'wk-mini-btn wk-mini-liberar' + (podeLiberar ? '' : ' disabled');
+    const clsApagar  = 'wk-mini-btn wk-mini-apagar'  + (podeApagar  ? '' : ' disabled');
+    const onLiberar = podeLiberar ? `onclick="liberarCamada('${dt}')"` : '';
+    const onApagar  = podeApagar  ? `onclick="apagarCamada('${dt}')"`  : '';
+    const camadasTxt = info.camadas > 0 ? `${info.camadas} consultório(s)` : 'vazio';
+
+    html += `<div class="wk-day-head ${dt === hoje ? 'hoje' : ''}">
+      <div class="wk-day-nome">${DIAS_SEMANA[i]}<small>${ddmm(dt)}</small></div>
+      <div class="wk-day-btns">
+        <button class="${clsLiberar}" ${onLiberar} title="Liberar 1 camada de horários livres">⚡ Liberar</button>
+        <button class="${clsApagar}" ${onApagar} title="Apagar 1 camada de horários livres">🗑 Apagar</button>
+      </div>
+      <div class="wk-camadas">${camadasTxt}</div>
+    </div>`;
+  });
+
+  // Linha do tempo: hora atual em minutos (só relevante se hoje está visível na semana)
+  const hojeNaSemana = dias.includes(hoje);
+  const _agora = new Date();
+  const agoraMin = _agora.getHours() * 60 + _agora.getMinutes();
+  const agoraStr = minToHH(agoraMin);
+  let timelineInserida = false;
+
+  // Linhas de horários — grade de 5 em 5 min (com separador do almoço no meio).
+  // Linhas :00/:30 ("cheias") têm rótulo visível e altura maior; as intermediárias
+  // ficam finas e discretas, mas exibem qualquer slot avulso (ex.: 09:45).
+  HORARIOS_GRADE.forEach((h, idx) => {
+    if (idx === IDX_SEPARADOR) {
+      html += `<div class="wk-sep">— almoço —</div>`;
+    }
+
+    const hMin = hhToMin(h);
+
+    // Inserir linha do tempo antes do primeiro horário APÓS a hora atual
+    if (hojeNaSemana && !timelineInserida && hMin > agoraMin) {
+      html += `<div class="wk-timeline"><span class="wk-timeline-label">⏱ ${agoraStr} — agora</span></div>`;
+      timelineInserida = true;
+    }
+
+    const cheia = linhaCheia(h);
+    const clsMini = cheia ? '' : ' mini';
+    // Passado = hoje está visível E este horário já passou
+    const ehPassado = hojeNaSemana && hMin <= agoraMin;
+    // Rótulo: horário completo nas linhas cheias; traço discreto nas intermediárias.
+    html += `<div class="wk-hora${clsMini}${ehPassado ? ' passado-hora' : ''}">${cheia ? h : '·'}</div>`;
+    dias.forEach(dt => {
+      const slots = (dadosSemana[dt] || []).filter(s => s.hora_inicio === h);
+      slots.forEach(s => { slotsPorId[s.id] = s; });
+      const n = slots.length;
+      const conteudo = slots.map((s, i) => miniSlotHtml(s, n, i)).join('');
+      const clsVazio = slots.length ? '' : (cheia ? ' vazio' : ' vazio-mini');
+      // Célula escurecida apenas para a coluna do dia de hoje no passado
+      const clsPassado = (dt === hoje && ehPassado) ? ' passado' : '';
+      html += `<div class="wk-cell${clsMini}${clsVazio}${clsPassado}">${conteudo}</div>`;
+    });
+  });
+
+  tabela.innerHTML = html;
+}
+
+// Converte "HH:MM" em minutos totais (para calcular a duração do slot).
+function hhToMin(hhmm) {
+  if (!hhmm || hhmm.indexOf(':') < 0) return 0;
+  const [h, m] = hhmm.split(':');
+  return (parseInt(h, 10) || 0) * 60 + (parseInt(m, 10) || 0);
+}
+
+function miniSlotHtml(s, totalNoCell, idxNoCell) {
+  const st = s.status || 'livre';
+  const nome = s.paciente_nome ? escHtml(s.paciente_nome) : 'Livre';
+  // Cada célula tem 16px; o grid tem gap:4px entre linhas.
+  // Para N linhas de 5min: altura = N × (16+4) − 4  →  preenche célula-a-célula
+  const PX_CELULA = 16;
+  const GAP       = 4;
+  let dur = hhToMin(s.hora_fim) - hhToMin(s.hora_inicio);
+  if (!(dur > 0)) dur = 5;
+  const nLinhas = Math.max(1, Math.round(dur / 5));
+  const altura = nLinhas * (PX_CELULA + GAP) - GAP;  // ex: 30min→6×20-4=116px
+  // Posição lateral: divide a célula quando há múltiplos slots lado a lado.
+  const n = totalNoCell || 1;
+  const i = idxNoCell || 0;
+  const pctW = (100 / n).toFixed(2);
+  const pctL = (i * 100 / n).toFixed(2);
+  const posStyle = n > 1
+    ? `left:${pctL}%;width:${pctW}%;`
+    : `left:2px;right:2px;`;
+  // Horário dentro do slot, ex.: "14:05 – 14:45"
+  const faixa = s.hora_fim ? `${s.hora_inicio} – ${s.hora_fim}` : `${s.hora_inicio}`;
+  return `<div class="wk-slot slot-${st}" style="height:${altura}px;${posStyle}" onclick="abrirModalEditarSlot(${s.id})">
+    <div class="wk-slot-badge">${labelStatus(st)} · ${faixa}</div>
+    <div class="wk-slot-nome">${nome}</div>
+  </div>`;
+}
+
+function labelStatus(st) {
+  return {
+    livre: 'Livre',
+    agendado: 'Agendado',
+    nao_confirmado: 'Não confirmado',
+    confirmado: 'Confirmado',
+    cancelado: 'Cancelado',
+    ocupado: 'Agendado',      // alias legado
+    bloqueado: 'Bloqueado'
+  }[st] || st;
+}
+
+// ── Navegação semanal ───────────────────────────────
+function navegarSemana(delta) {
+  semanaInicio = somarDias(semanaInicio, delta * 7);
+  carregarAgenda();
+}
+
+function irSemanaHoje() {
+  semanaInicio = segundaDaSemana(new Date());
+  carregarAgenda();
+}
+
+// ── Liberar 1 camada (14 slots livres) — POSTs SEQUENCIAIS ──
+async function liberarCamada(dataStr) {
+  if (ocupadoEscrevendo) return;
+  const info = infoDia(dadosSemana[dataStr] || []);
+  if (info.naoLivres > 0) { mostrarToast('Dia com pacientes — não é possível liberar em massa.', '#f59e0b'); return; }
+  if (info.camadas >= MAX_CAMADAS) { mostrarToast('Máximo de 3 consultórios atingido neste dia.', '#f59e0b'); return; }
+
+  ocupadoEscrevendo = true;
+  mostrarToast('⏳ Liberando horários...', '#334155');
+  try {
+    // Sequencial (uma requisição por vez) para não conflitar no SQLite.
+    for (const h of HORARIOS_LIBERAR) {
+      await fetch('/api/agenda/slots', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({data: dataStr, hora_inicio: h.ini, hora_fim: h.fim, observacao: ''})
+      });
+    }
+    mostrarToast('✅ Camada de horários liberada!', '#22c55e');
+  } catch(e) {
+    mostrarToast('Erro ao liberar horários.', '#ef4444');
+  } finally {
+    ocupadoEscrevendo = false;
+    await carregarAgenda();
+  }
+}
+
+// ── Apagar 1 camada (remove 1 slot livre de cada horário) — DELETEs SEQUENCIAIS ──
+async function apagarCamada(dataStr) {
+  if (ocupadoEscrevendo) return;
+  const slots = dadosSemana[dataStr] || [];
+  const info = infoDia(slots);
+  if (info.naoLivres > 0) { mostrarToast('Dia com pacientes — não é possível apagar em massa.', '#f59e0b'); return; }
+  if (info.camadas < 1) { mostrarToast('Não há camadas para apagar neste dia.', '#f59e0b'); return; }
+  if (!confirm('Apagar 1 camada de horários livres deste dia?')) return;
+
+  ocupadoEscrevendo = true;
+  mostrarToast('⏳ Apagando camada...', '#334155');
+  try {
+    for (const h of HORARIOS_LIBERAR) {
+      // Pega o slot LIVRE mais recente (maior id) daquele horário e apaga.
+      const cand = slots.filter(s => s.hora_inicio === h.ini && (s.status || 'livre') === 'livre')
+                        .sort((a,b) => b.id - a.id);
+      if (cand.length) {
+        await fetch(`/api/agenda/slots/${cand[0].id}`, {method:'DELETE'});
+      }
+    }
+    mostrarToast('🗑️ Camada apagada.', '#f59e0b');
+  } catch(e) {
+    mostrarToast('Erro ao apagar camada.', '#ef4444');
+  } finally {
+    ocupadoEscrevendo = false;
+    await carregarAgenda();
+  }
+}
+
+// ── MODAL NOVO SLOT (avulso) ─────────────────────────
+function abrirModalNovoSlot() {
+  document.getElementById('ns-data').value = semanaInicio;
+  document.getElementById('ns-inicio').value = '09:00';
+  document.getElementById('ns-fim').value = '09:30';
+  document.getElementById('ns-obs').value = '';
+  document.getElementById('modal-novo-slot').classList.add('open');
+}
+
+async function criarSlot() {
+  const data = document.getElementById('ns-data').value;
+  const hi   = document.getElementById('ns-inicio').value;
+  const hf   = document.getElementById('ns-fim').value;
+  const obs  = document.getElementById('ns-obs').value.trim();
+  if (!data || !hi || !hf) { mostrarToast('Preencha data, hora início e hora fim.', '#f59e0b'); return; }
+  try {
+    await fetch('/api/agenda/slots', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({data, hora_inicio: hi, hora_fim: hf, observacao: obs})
+    });
+    fecharModal('modal-novo-slot');
+    semanaInicio = segundaDaSemana(new Date(data + 'T12:00:00'));
+    carregarAgenda();
+    mostrarToast('✅ Horário criado!', '#22c55e');
+  } catch(e) { mostrarToast('Erro ao criar horário.', '#ef4444'); }
+}
+
+// ── MODAL EDITAR SLOT ────────────────────────────────
+function abrirModalEditarSlot(id) {
+  const slot = slotsPorId[id];
+  if (!slot) return;
+  document.getElementById('edit-slot-id').value = slot.id;
+  document.getElementById('edit-slot-nome').value = slot.paciente_nome || '';
+  document.getElementById('edit-slot-tel').value = slot.paciente_numero || '';
+  document.getElementById('edit-slot-inicio').value = slot.hora_inicio || '';
+  document.getElementById('edit-slot-fim').value = slot.hora_fim || '';
+
+  // Garante que o status atual apareça mesmo se não for um dos 3 padrão.
+  const sel = document.getElementById('edit-slot-status');
+  const st = slot.status || 'livre';
+  if (!Array.from(sel.options).some(o => o.value === st)) {
+    const opt = document.createElement('option');
+    opt.value = st; opt.textContent = labelStatus(st);
+    sel.appendChild(opt);
+  }
+  sel.value = st;
+
+  document.getElementById('edit-slot-obs').value = slot.observacao || '';
+  document.getElementById('modal-slot').classList.add('open');
+}
+
+async function salvarSlot() {
+  const id = document.getElementById('edit-slot-id').value;
+  const payload = {
+    paciente_nome: document.getElementById('edit-slot-nome').value.trim(),
+    paciente_numero: document.getElementById('edit-slot-tel').value.trim(),
+    hora_inicio: document.getElementById('edit-slot-inicio').value,
+    hora_fim: document.getElementById('edit-slot-fim').value,
+    status: document.getElementById('edit-slot-status').value,
+    observacao: document.getElementById('edit-slot-obs').value.trim()
+  };
+  try {
+    await fetch(`/api/agenda/slots/${id}`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    fecharModal('modal-slot');
+    carregarAgenda();
+    mostrarToast('✅ Horário atualizado!', '#22c55e');
+  } catch(e) { mostrarToast('Erro ao salvar.', '#ef4444'); }
+}
+
+async function deletarSlot() {
+  const id = document.getElementById('edit-slot-id').value;
+  if (!confirm('Tem certeza que quer apagar este slot?')) return;
+  try {
+    await fetch(`/api/agenda/slots/${id}`, {method:'DELETE'});
+    fecharModal('modal-slot');
+    carregarAgenda();
+    mostrarToast('🗑️ Slot apagado.', '#f59e0b');
+  } catch(e) { mostrarToast('Erro ao apagar.', '#ef4444'); }
+}
+
+// ── UTILS ────────────────────────────────────────────
+function fecharModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+function mostrarToast(msg, cor) {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:24px;right:24px;background:${cor||'#334155'};color:#fff;
+    padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;
+    box-shadow:0 4px 20px rgba(0,0,0,.4);transition:opacity .4s`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; setTimeout(() => t.remove(), 400); }, 3000);
+}
+
+// Atualização automática da semana a cada 30s (só quando a aba Agenda está ativa
+// e nenhuma escrita está em andamento).
+setInterval(() => {
+  if (abaAtual === 'agenda' && !ocupadoEscrevendo) carregarAgenda();
+}, 30000);
+
+// ═══════════════════════════════════════════════════════════════
+//  ABA IMPORTAR
+// ═══════════════════════════════════════════════════════════════
+
+async function carregarFilaImportacao() {
+  try {
+    const r = await fetch('/api/importar/fila');
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('fila-aguardando').textContent = d.aguardando ?? '—';
+    document.getElementById('fila-ativados').textContent   = d.ativados   ?? '—';
+    document.getElementById('fila-total').textContent      = d.total      ?? '—';
+    document.getElementById('importar-fila-box').style.display = 'flex';
+  } catch(e) { /* silencioso */ }
+}
+
+async function importarLeads() {
+  const texto = document.getElementById('importar-textarea').value.trim();
+  if (!texto) return;
+  const btn = document.getElementById('btn-importar');
+  const res = document.getElementById('importar-resultado');
+  btn.disabled = true;
+  btn.textContent = 'Importando…';
+  res.style.display = 'none';
+  try {
+    const r = await fetch('/api/importar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto })
+    });
+    const d = await r.json();
+    let html = `<span class="ok">✅ ${d.adicionados} adicionado(s)</span> &nbsp; <span class="ig">⚠️ ${d.ignorados} ignorado(s) (duplicata)</span>`;
+    if (d.erros && d.erros.length) {
+      html += `<div class="er">Erros: ${d.erros.join(', ')}</div>`;
+    }
+    if (d.fila) {
+      document.getElementById('fila-aguardando').textContent = d.fila.aguardando ?? '—';
+      document.getElementById('fila-ativados').textContent   = d.fila.ativados   ?? '—';
+      document.getElementById('fila-total').textContent      = d.fila.total      ?? '—';
+      document.getElementById('importar-fila-box').style.display = 'flex';
+    }
+    res.innerHTML = html;
+    res.style.display = 'block';
+    if (d.adicionados > 0) document.getElementById('importar-textarea').value = '';
+  } catch(e) {
+    res.innerHTML = `<span class="er">Erro: ${e.message}</span>`;
+    res.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📥 Importar Leads';
+  }
+}
+
+
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"f0f03d0605bf45f1a3b17cf7d5e6861f","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Reabilita — Login</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0a1120;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;
+         display:flex;align-items:center;justify-content:center;min-height:100vh}
+    .container{width:100%;max-width:420px;padding:24px 16px}
+    .logo{text-align:center;margin-bottom:32px}
+    .logo h1{font-size:22px;font-weight:800;color:#38bdf8;letter-spacing:.04em}
+    .logo p{font-size:13px;color:#64748b;margin-top:4px}
+    .cards{display:flex;gap:12px;margin-bottom:24px}
+    .card{flex:1;background:#1e293b;border:2px solid #334155;border-radius:14px;
+          padding:20px 12px;cursor:pointer;transition:all .2s;text-align:center;
+          user-select:none}
+    .card:hover{border-color:#38bdf8;background:#1e3a5f}
+    .card.selected{border-color:#38bdf8;background:#1e3a5f;box-shadow:0 0 0 2px #1d4ed840}
+    .card-icon{font-size:30px;margin-bottom:8px}
+    .card-nome{font-size:14px;font-weight:700;color:#e2e8f0}
+    .card-desc{font-size:11px;color:#64748b;margin-top:3px}
+    .form-group{margin-bottom:16px}
+    .form-group label{font-size:12px;color:#94a3b8;display:block;margin-bottom:6px;font-weight:600}
+    .form-group input{width:100%;background:#1e293b;border:1px solid #334155;border-radius:8px;
+      color:#e2e8f0;padding:10px 12px;font-size:14px;outline:none;transition:border .15s}
+    .form-group input:focus{border-color:#38bdf8}
+    .btn-login{width:100%;background:#1d4ed8;color:#fff;border:none;border-radius:10px;
+      padding:12px;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s}
+    .btn-login:hover{background:#2563eb}
+    .btn-login:active{background:#1e40af}
+    .erro{background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d;border-radius:8px;
+      padding:10px 12px;font-size:13px;margin-bottom:12px;display:none}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">
+    <h1>🦷 Reabilita</h1>
+    <p>Painel de Atendimento — Larissa IA</p>
+  </div>
+
+  <div class="cards">
+    <div class="card" id="card-duda" onclick="selecionarPerfil('duda')">
+      <div class="card-icon">👩</div>
+      <div class="card-nome">Duda</div>
+      <div class="card-desc">Atendente</div>
+    </div>
+    <div class="card" id="card-admin" onclick="selecionarPerfil('admin')">
+      <div class="card-icon">🔑</div>
+      <div class="card-nome">Administrador</div>
+      <div class="card-desc">Acesso total</div>
+    </div>
+  </div>
+
+  <div id="erro" class="erro">Senha incorreta. Tente novamente.</div>
+
+  <div class="form-group">
+    <label>Senha</label>
+    <input type="password" id="senha" placeholder="Digite a senha..."
+           onkeydown="if(event.key==='Enter') entrar()"/>
+  </div>
+  <button class="btn-login" onclick="entrar()">Entrar</button>
+</div>
+
+<script>
+  let perfilSelecionado = 'duda';
+
+  // Seleciona Duda por padrão
+  document.getElementById('card-duda').classList.add('selected');
+
+  function selecionarPerfil(p) {
+    perfilSelecionado = p;
+    document.getElementById('card-duda').classList.toggle('selected', p === 'duda');
+    document.getElementById('card-admin').classList.toggle('selected', p === 'admin');
+    document.getElementById('senha').focus();
+  }
+
+  async function entrar() {
+    const senha = document.getElementById('senha').value;
+    if (!senha) { document.getElementById('senha').focus(); return; }
+    const erroEl = document.getElementById('erro');
+    erroEl.style.display = 'none';
+    try {
+      const r = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ perfil: perfilSelecionado, senha })
+      });
+      if (r.ok) {
+        window.location.href = '/dashboard';
+      } else {
+        erroEl.style.display = 'block';
+        document.getElementById('senha').value = '';
+        document.getElementById('senha').focus();
+      }
+    } catch(e) {
+      erroEl.textContent = 'Erro de conexão. Verifique o servidor.';
+      erroEl.style.display = 'block';
+    }
+  }
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"f0f03d0605bf45f1a3b17cf7d5e6861f","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
