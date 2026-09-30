@@ -2070,11 +2070,11 @@ def adicionar_importados(leads: list[dict]) -> dict:
                 erros.append('Número vazio ignorado')
                 continue
             try:
-                conn.execute(
+                cur2 = conn.execute(
                     "INSERT OR IGNORE INTO fila_importacao (numero, nome, interesse, adicionado_em) VALUES (?,?,?,?)",
                     (numero, nome, interesse, agora)
                 )
-                if conn.total_changes > 0:
+                if cur2.rowcount > 0:
                     adicionados += 1
                 else:
                     ignorados += 1
