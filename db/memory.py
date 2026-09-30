@@ -8,6 +8,7 @@ Todas as funções abrem/fecham a própria conexão (thread-safe para FastAPI).
 
 import os
 import sqlite3
+import requests
 from datetime import datetime, timedelta
 import pytz
 
@@ -23,20 +24,165 @@ TZ = pytz.timezone('America/Belem')
 
 # ── TURSO (opcional) ──────────────────────────────────────────────────────────
 # Se TURSO_URL e TURSO_AUTH_TOKEN estiverem no .env, usa o banco remoto Turso
-# (libsql-experimental). Caso contrário, usa SQLite local normalmente.
-# Compatibilidade: libsql_experimental.connect() devolve um objeto com a mesma
-# API de sqlite3 (execute, commit, close, row_factory, total_changes).
-_TURSO_URL   = os.environ.get('TURSO_URL', '')
+# via HTTP API (sem instalar nada extra — só requests).
+# Caso contrário, usa SQLite local normalmente.
+_TURSO_URL   = os.environ.get('TURSO_URL', '').replace('libsql://', 'https://')
 _TURSO_TOKEN = os.environ.get('TURSO_AUTH_TOKEN', '')
 _USAR_TURSO  = bool(_TURSO_URL and _TURSO_TOKEN)
 
+# ── Wrapper HTTP para o Turso (emula API do sqlite3) ─────────────────────────
+
+def _turso_val(v):
+    """Converte valor Python para formato da API HTTP do Turso."""
+    if v is None:
+        return {"type": "null"}
+    if isinstance(v, bool):
+        return {"type": "integer", "value": "1" if v else "0"}
+    if isinstance(v, int):
+        return {"type": "integer", "value": str(v)}
+    if isinstance(v, float):
+        return {"type": "float", "value": str(v)}
+    return {"type": "text", "value": str(v)}
+
+
+class _TursoRow:
+    """Emula sqlite3.Row: acesso por índice e por chave. Suporta dict()."""
+    def __init__(self, keys, values):
+        self._keys = list(keys)
+        self._values = list(values)
+        self._d = dict(zip(self._keys, self._values))
+
+    def keys(self):
+        return self._keys
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._values[key]
+        return self._d[key]
+
+    def get(self, key, default=None):
+        return self._d.get(key, default)
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __len__(self):
+        return len(self._values)
+
+    # Suporte a dict(row)
+    def items(self):
+        return self._d.items()
+
+    def __contains__(self, key):
+        return key in self._d
+
+
+class _TursoCursor:
+    """Cursor emulado sobre a HTTP API do Turso."""
+    def __init__(self, pipeline_url, headers):
+        self._url = pipeline_url
+        self._headers = headers
+        self._rows = []
+        self._keys = []
+        self.lastrowid = None
+        self.rowcount = 0
+
+    def _parse_result(self, result):
+        cols = result.get("cols", [])
+        self._keys = [c["name"] for c in cols]
+        rows_raw = result.get("rows", [])
+        self._rows = []
+        for row in rows_raw:
+            vals = []
+            for cell in row:
+                t = cell.get("type")
+                v = cell.get("value")
+                if t == "null" or v is None:
+                    vals.append(None)
+                elif t == "integer":
+                    vals.append(int(v))
+                elif t == "float":
+                    vals.append(float(v))
+                else:
+                    vals.append(v)
+            self._rows.append(_TursoRow(self._keys, vals))
+        self.lastrowid = result.get("last_insert_rowid")
+        self.rowcount = result.get("affected_row_count", 0)
+
+    def execute(self, sql, params=None):
+        stmt = {"sql": sql}
+        if params:
+            stmt["args"] = [_turso_val(a) for a in params]
+        payload = {"requests": [{"type": "execute", "stmt": stmt}, {"type": "close"}]}
+        r = requests.post(self._url, headers=self._headers, json=payload, timeout=30)
+        if r.status_code != 200:
+            raise Exception(f"Turso HTTP {r.status_code}: {r.text[:300]}")
+        resultado = r.json()
+        resp = resultado.get("results", [{}])[0]
+        if resp.get("type") == "error":
+            raise Exception(resp.get("error", {}).get("message", "Erro Turso"))
+        self._parse_result(resp.get("response", {}).get("result", {}))
+        return self
+
+    def executemany(self, sql, list_params):
+        reqs = []
+        for params in list_params:
+            stmt = {"sql": sql, "args": [_turso_val(a) for a in params]}
+            reqs.append({"type": "execute", "stmt": stmt})
+        reqs.append({"type": "close"})
+        payload = {"requests": reqs}
+        r = requests.post(self._url, headers=self._headers, json=payload, timeout=60)
+        if r.status_code != 200:
+            raise Exception(f"Turso HTTP {r.status_code}: {r.text[:300]}")
+        return self
+
+    def fetchone(self):
+        return self._rows[0] if self._rows else None
+
+    def fetchall(self):
+        return self._rows
+
+
+class _TursoConn:
+    """Conexão emulada com o Turso via HTTP (mesma API do sqlite3)."""
+    def __init__(self, url, token):
+        self._pipeline = f"{url}/v2/pipeline"
+        self._headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+        self.row_factory = None
+        self.total_changes = 0
+
+    def cursor(self):
+        return _TursoCursor(self._pipeline, self._headers)
+
+    def execute(self, sql, params=None):
+        return self.cursor().execute(sql, params)
+
+    def executemany(self, sql, list_params):
+        return self.cursor().executemany(sql, list_params)
+
+    def executescript(self, script):
+        """Executa múltiplos SQLs separados por ; (usado no init_db)."""
+        stmts = [s.strip() for s in script.split(';') if s.strip()]
+        reqs = [{"type": "execute", "stmt": {"sql": s}} for s in stmts]
+        reqs.append({"type": "close"})
+        payload = {"requests": reqs}
+        r = requests.post(self._pipeline, headers=self._headers,
+                          json=payload, timeout=60)
+        if r.status_code != 200:
+            raise Exception(f"Turso HTTP {r.status_code}: {r.text[:300]}")
+
+    def commit(self):
+        pass  # Turso auto-commit por request
+
+    def close(self):
+        pass  # sem estado persistente
+
+
 if _USAR_TURSO:
-    try:
-        import libsql_experimental as libsql
-        print(f"🌐 [DB] Turso ativo → {_TURSO_URL}")
-    except ImportError:
-        _USAR_TURSO = False
-        print("⚠️  [DB] libsql_experimental não instalado — usando SQLite local.")
+    print(f"🌐 [DB] Turso ativo (HTTP) → {_TURSO_URL}")
 
 
 def _agora():
@@ -45,14 +191,11 @@ def _agora():
 
 
 def _conectar():
-    """Abre conexão com o banco (Turso remoto se configurado, SQLite local caso contrário).
+    """Abre conexão com o banco (Turso remoto via HTTP se configurado, SQLite local caso contrário).
     API compatível com sqlite3: execute/commit/close/row_factory/total_changes.
     """
     if _USAR_TURSO:
-        import libsql_experimental as libsql
-        conn = libsql.connect(database=_TURSO_URL, auth_token=_TURSO_TOKEN)
-        conn.row_factory = sqlite3.Row  # compatibilidade de leitura de linhas
-        return conn
+        return _TursoConn(_TURSO_URL, _TURSO_TOKEN)
     # ── SQLite local (padrão) ──────────────────────────────────────────────────
     # timeout=10: evita deadlock permanente — levanta OperationalError após 10s.
     # check_same_thread=False: necessário quando chamado de thread pool.
@@ -62,8 +205,12 @@ def _conectar():
 
 
 def _row_para_dict(row):
-    """Converte sqlite3.Row em dict (ou {} se None)."""
-    return dict(row) if row is not None else {}
+    """Converte sqlite3.Row ou _TursoRow em dict (ou {} se None)."""
+    if row is None:
+        return {}
+    if isinstance(row, _TursoRow):
+        return dict(row.items())
+    return dict(row)
 
 
 # ==================== INICIALIZAÇÃO ====================
